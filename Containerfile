@@ -4,7 +4,9 @@ COPY build_files /
 COPY system_files /system_files
 
 # Base Image
-FROM ghcr.io/ublue-os/kinoite-main:latest
+# Fedora 44 indtil videre: bootc-image-builder kan ikke lave en installer-ISO af Fedora 45
+# (https://github.com/osbuild/image-builder/issues/2704). Skift til :latest, naar det er loest.
+FROM ghcr.io/ublue-os/kinoite-main:44
 ## Other possible base images include:
 # FROM ghcr.io/ublue-os/bazzite:stable
 # FROM ghcr.io/ublue-os/aurora:stable

@@ -16,7 +16,9 @@ Keel er et styresystem-image bygget som et bootc-containerimage oven på Fedora
 
 ## Afvigelser fra skabelonen
 
-- Base: `ghcr.io/ublue-os/kinoite-main:latest` i stedet for Bazzite.
+- Base: `ghcr.io/ublue-os/kinoite-main:44` i stedet for Bazzite. Fedora 44, fordi installer-ISO'en
+  endnu ikke kan bygges af Fedora 45.
+- ISO-workflowet kører på `ubuntu-24.04` (osbuild fejler på `ubuntu-26.04`) og sætter rodfilsystemet til btrfs.
 - `disk_config/iso.toml` findes nu (skabelonens workflow pegede på en fil, der ikke fandtes).
 - Signering med cosign er taget ud i B1 og tilføjes, før imaget skal bruges af andre.
 - `/usr/share/keel/release` markerer, at et system er bygget fra dette repo.
