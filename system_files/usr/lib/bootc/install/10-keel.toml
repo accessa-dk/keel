@@ -1,0 +1,3 @@
+# Keel: standard-rodfilsystem ved installation (samme som Fedora Kinoite)
+[install.filesystem.root]
+type = "btrfs"
