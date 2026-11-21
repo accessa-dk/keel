@@ -38,6 +38,14 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/build.sh
 
+## Keel 0.1 (B3, trin 3): initramfs bygges om, saa opstartsbilledet viser Keels watermark.png.
+## Eget trin uden cache-mapper under /var. /boot, /var/log og /tmp er midlertidige.
+RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=tmpfs,dst=/boot \
+    --mount=type=tmpfs,dst=/var/log \
+    --mount=type=tmpfs,dst=/tmp \
+    /ctx/initramfs.sh
+
 ### LINTING
 ## Verify final image and contents are correct.
 RUN bootc container lint
