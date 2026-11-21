@@ -29,6 +29,9 @@ FOER="$(stat -c %s "$INITRAMFS")"
 RETTIGHEDER="$(stat -c %a "$INITRAMFS")"
 SHA_FOER="$(sha256sum "$INITRAMFS" | cut -d' ' -f1)"
 WM_FOER="$(lsinitrd -f "$WATERMARK" "$INITRAMFS" | sha256sum | cut -d' ' -f1)"
+# Trin 4: initramfs indeholder en kopi af os-release (dracut skriver usr/lib/initrd-release ud
+# fra /etc/os-release). Basens har ID=fedora, Keels nye skal have ID=keel og ID_LIKE="fedora".
+ID_FOER="$(lsinitrd -f usr/lib/initrd-release "$INITRAMFS" | grep -E '^ID(_LIKE)?=' | tr '\n' ' ')"
 test -s "$WORK/moduler-foer.txt"
 grep -qx ostree "$WORK/moduler-foer.txt"
 grep -qx plymouth "$WORK/moduler-foer.txt"
@@ -60,6 +63,11 @@ test "$EFTER" -ge "$(( FOER * 90 / 100 ))"
 test "$EFTER" -le "$(( FOER * 110 / 100 ))"
 
 lsinitrd -f "$WATERMARK" "$INITRAMFS" | cmp - "/${WATERMARK}"
+lsinitrd -f usr/lib/initrd-release "$INITRAMFS" > "$WORK/initrd-release.txt"
+grep -qx 'ID=keel' "$WORK/initrd-release.txt"
+grep -qx 'ID_LIKE="fedora"' "$WORK/initrd-release.txt"
+grep -qx 'VERSION_ID=44' "$WORK/initrd-release.txt"
+ID_EFTER="$(grep -E '^ID(_LIKE)?=' "$WORK/initrd-release.txt" | tr '\n' ' ')"
 SHA_EFTER="$(sha256sum "$INITRAMFS" | cut -d' ' -f1)"
 WM_EFTER="$(sha256sum "/${WATERMARK}" | cut -d' ' -f1)"
 
@@ -71,7 +79,8 @@ for linje in \
     "filnavne: $(wc -l < "$WORK/filer-foer.txt") foer, $(wc -l < "$WORK/filer-efter.txt") efter, ens" \
     "watermark.png i initramfs: foer sha256 ${WM_FOER}, efter sha256 ${WM_EFTER} (cmp mod Keels fil: ens)" \
     "initramfs.img sha256 foer ${SHA_FOER}" \
-    "initramfs.img sha256 efter ${SHA_EFTER}"; do
+    "initramfs.img sha256 efter ${SHA_EFTER}" \
+    "initrd-release: foer ${ID_FOER}, efter ${ID_EFTER}"; do
     echo "::notice title=Keel initramfs::${linje}"
 done
 rm -rf "$WORK"
