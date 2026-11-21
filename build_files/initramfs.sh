@@ -33,8 +33,21 @@ test -s "$WORK/moduler-foer.txt"
 grep -qx ostree "$WORK/moduler-foer.txt"
 grep -qx plymouth "$WORK/moduler-foer.txt"
 
+# /root er et link til var/roothome, som foerst oprettes ved opstart (tmpfiles). Uden maalet
+# springer dracut-install /root over ("ERROR: installing '/root'", set i det foerste
+# proevebyggeri), og basens initramfs har baade root og var/roothome. Maalet laves derfor
+# kun under dracut-koerslen og fjernes bagefter, saa /var i imaget er uaendret.
+ROOTHOME_LAVET=""
+if [ -L /root ] && [ ! -e /root ]; then
+    ROOTHOME_LAVET="$(readlink -f /root)"
+    mkdir -m 0700 "$ROOTHOME_LAVET"
+fi
+
 DRACUT_NO_XATTR=1 /usr/bin/dracut --no-hostonly --kver "$KVER" --reproducible -v --add ostree -f "$INITRAMFS"
 chmod "$RETTIGHEDER" "$INITRAMFS"
+if [ -n "$ROOTHOME_LAVET" ]; then
+    rmdir "$ROOTHOME_LAVET"
+fi
 
 moduler "$INITRAMFS" > "$WORK/moduler-efter.txt"
 filnavne "$INITRAMFS" > "$WORK/filer-efter.txt"
