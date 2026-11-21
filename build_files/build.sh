@@ -74,8 +74,8 @@ rpm -q plasma-welcome
 # ID=keel, saa programmer ikke tror, de koerer paa Fedora. ID_LIKE="fedora" fortaeller de
 # programmer, der kender Fedora, at Keel ligner det: bootc-image-builder vaelger installer-
 # opsaetning efter ID og derefter ID_LIKE, og systemd-sysext matcher mod begge.
-# VERSION_ID=44 roeres ikke: dnf laeser releasever fra pakken fedora-release-common
-# (system-release(releasever)), ikke fra os-release.
+# VERSION_ID=44 roeres ikke. dnf laeser releasever fra rpm-databasen (den pakke, der giver
+# system-release), ikke fra os-release.
 grep -qx 'ID=fedora' "$OSR"
 if grep -q '^ID_LIKE=' "$OSR"; then
     echo "os-release har allerede ID_LIKE" >&2
@@ -91,7 +91,9 @@ test "$(readlink -f /etc/os-release)" = "/usr/lib/os-release"
 cat "$OSR"
 
 # dnf skal stadig finde Fedora 44's pakker efter ID-skiftet. Byggeriet stopper, hvis ikke.
-rpm -q --whatprovides 'system-release(releasever)'
+# Hvilken pakke dnf tager releasever fra (libdnf5 vars.cpp: foerste af system-release(releasever),
+# system-release, ...). Kun til loggen; selve kontrollen er releasever-linjen nedenfor.
+rpm -q --whatprovides 'system-release(releasever)' system-release || true
 dnf --dump-variables repolist --enabled | tee /tmp/keel-dnf.txt
 grep -qx 'releasever = 44' /tmp/keel-dnf.txt
 dnf -q --refresh repoquery --available --latest-limit=1 bash | tee /tmp/keel-repoquery.txt
