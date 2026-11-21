@@ -111,15 +111,27 @@ else
     echo "::notice title=Keel id::grub2-switch-to-blscfg findes ikke i imaget"
 fi
 
-# dnf copr vaelger Copr-chroot efter ID (keel-44 findes ikke). Samme rettelse som Aurora.
-mkdir -p /usr/share/dnf/plugins
-test ! -e /usr/share/dnf/plugins/copr.vendor.conf
-printf '[main]\ndistribution = fedora\n' > /usr/share/dnf/plugins/copr.vendor.conf
+# dnf copr vaelger Copr-chroot efter ID (keel-44 findes ikke). Aurora har filen
+# copr.vendor.conf med distribution = fedora. Basen har allerede en (set i proevebyggeri 2);
+# den beholdes, hvis den siger fedora, ellers stopper byggeriet.
+COPR_VENDOR=/usr/share/dnf/plugins/copr.vendor.conf
+if [ -e "$COPR_VENDOR" ]; then
+    rpm -qf "$COPR_VENDOR" || true
+    cat "$COPR_VENDOR"
+else
+    mkdir -p /usr/share/dnf/plugins
+    printf '[main]\ndistribution = fedora\n' > "$COPR_VENDOR"
+fi
+grep -Eqx 'distribution *= *fedora' "$COPR_VENDOR"
 
 # toolbox vaelger sit standard-image efter ID. Med et ukendt ID falder toolbox 0.3 tilbage paa
 # fedora-toolbox:42. Keel peger det paa Fedora med basens version.
 if rpm -q toolbox; then
-    test ! -e /etc/containers/toolbox.conf
+    if [ -e /etc/containers/toolbox.conf ]; then
+        echo "/etc/containers/toolbox.conf findes allerede i basen:" >&2
+        cat /etc/containers/toolbox.conf >&2
+        exit 1
+    fi
     TOOLBOX_RELEASE="$(. "$OSR" && echo "$VERSION_ID")"
     printf '[general]\ndistro = "fedora"\nrelease = "%s"\n' "$TOOLBOX_RELEASE" > /etc/containers/toolbox.conf
     cat /etc/containers/toolbox.conf
