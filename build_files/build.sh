@@ -127,14 +127,24 @@ grep -Eqx 'distribution *= *fedora' "$COPR_VENDOR"
 # toolbox vaelger sit standard-image efter ID. Med et ukendt ID falder toolbox 0.3 tilbage paa
 # fedora-toolbox:42. Keel peger det paa Fedora med basens version.
 if rpm -q toolbox; then
-    if [ -e /etc/containers/toolbox.conf ]; then
-        echo "/etc/containers/toolbox.conf findes allerede i basen:" >&2
-        cat /etc/containers/toolbox.conf >&2
+    # Basen har toolbox-pakkens skabelon, hvor alle valg er kommenteret ud (set i proevebyggeri 3).
+    # De to linjer "## distro" og "## release" slaas til; resten af skabelonen bliver staaende.
+    TBC=/etc/containers/toolbox.conf
+    TOOLBOX_RELEASE="$(. "$OSR" && echo "$VERSION_ID")"
+    rpm -qf "$TBC"
+    if grep -Eq '^[[:space:]]*(distro|release|image)[[:space:]]*=' "$TBC"; then
+        echo "toolbox.conf har allerede aktive valg" >&2
         exit 1
     fi
-    TOOLBOX_RELEASE="$(. "$OSR" && echo "$VERSION_ID")"
-    printf '[general]\ndistro = "fedora"\nrelease = "%s"\n' "$TOOLBOX_RELEASE" > /etc/containers/toolbox.conf
-    cat /etc/containers/toolbox.conf
+    test "$(grep -c '^## distro = ' "$TBC")" = "1"
+    test "$(grep -c '^## release = ' "$TBC")" = "1"
+    sed -i \
+        -e 's|^## distro = .*|distro = "fedora"|' \
+        -e "s|^## release = .*|release = \"${TOOLBOX_RELEASE}\"|" \
+        "$TBC"
+    grep -qx 'distro = "fedora"' "$TBC"
+    grep -qx "release = \"${TOOLBOX_RELEASE}\"" "$TBC"
+    grep -E '^\[general\]|^(distro|release|image) =' "$TBC"
 fi
 
 # "Om dette system" viser "Keel 0.1" og ingen undertitel. Version= og Variant= staar i Keels
