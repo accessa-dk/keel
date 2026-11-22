@@ -138,7 +138,8 @@ if [ -n "${EFI_START:-}" ] && [ -n "${EFI_BLOKKE:-}" ] \
 else
     echo "::warning title=Keel ISO::EFI-partitionens grub.cfg kunne ikke laeses; kun ISO-traeets er kontrolleret"
 fi
-checkisomd5 --verbose "$NY" | tail -n 3
+checkisomd5 "$NY" > "$WORK/md5.txt" 2>&1 || { cat "$WORK/md5.txt"; exit 1; }
+notice "checkisomd5: $(tail -n 1 "$WORK/md5.txt" | tr -d "\r")"
 
 mv -f "$NY" "$ISO"
 rm -rf "$WORK"
