@@ -8,7 +8,7 @@
 #   1. GRUB-menuen paa ISO'en: "Keel 44" -> "Keel 0.1" (BIOS og EFI, efiboot.img bygges om).
 #   2. Et opdateringsbillede (updates.img, inst.updates=) som Anacondas dracut-modul pakker ud
 #      over installationsmiljoeet foer start:
-#        /.buildstamp med Product=Keel og Version=0.1 (Anaconda 44 laeser navn og version herfra)
+#        /.buildstamp med product = Keel og version = 0.1 (Anaconda 44 laeser navn og version herfra)
 #        Keels stylesheet og maerke i stedet for Fedoras logo og blaa sidebjaelke.
 #   3. MD5-kontrolsummen til "Test this media" laegges ind igen (mkksiso goer det selv).
 #
@@ -56,8 +56,10 @@ cat "$WORK/grub-efi-foer.cfg"
 unsquashfs -cat "$WORK/install.img" .buildstamp > "$WORK/buildstamp-foer"
 echo "--- .buildstamp foer:"
 cat "$WORK/buildstamp-foer"
-PRODUCT="$(sed -n 's/^Product=//p' "$WORK/buildstamp-foer")"
-VERSION="$(sed -n 's/^Version=//p' "$WORK/buildstamp-foer")"
+# osbuild skriver noeglerne med smaa bogstaver ("product = Keel"); Anaconda laeser dem med
+# configparser, som ikke skelner mellem store og smaa bogstaver.
+PRODUCT="$(sed -nE 's/^[Pp]roduct *= *//p' "$WORK/buildstamp-foer")"
+VERSION="$(sed -nE 's/^[Vv]ersion *= *//p' "$WORK/buildstamp-foer")"
 test "$PRODUCT" = "Keel"
 test -n "$VERSION"
 FRA="${PRODUCT} ${VERSION}"
@@ -84,9 +86,11 @@ fi
 
 ### Opdateringsbilledet
 U="$WORK/updates"
-sed -e "s|^Version=.*|Version=${KEEL_VERSION}|" "$WORK/buildstamp-foer" > "$U/.buildstamp"
-grep -qx "Product=Keel" "$U/.buildstamp"
-grep -qx "Version=${KEEL_VERSION}" "$U/.buildstamp"
+sed -E "s|^([Vv]ersion *= *).*|\1${KEEL_VERSION}|" "$WORK/buildstamp-foer" > "$U/.buildstamp"
+echo "--- .buildstamp i updates.img:"
+cat "$U/.buildstamp"
+test "$(sed -nE 's/^[Pp]roduct *= *//p' "$U/.buildstamp")" = "Keel"
+test "$(sed -nE 's/^[Vv]ersion *= *//p' "$U/.buildstamp")" = "${KEEL_VERSION}"
 install -D -m 0644 "$LOGO" "$U/usr/share/anaconda/pixmaps/keel-sidebar-logo.png"
 for s in "${STYLESHEETS[@]}"; do
     case "$s" in
