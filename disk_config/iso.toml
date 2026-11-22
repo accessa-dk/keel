@@ -13,6 +13,8 @@ timezone Europe/Copenhagen --utc
 # Anaconda har sat sprog, tastatur og tidszone og oprettet brugeren. KDE's opsaetning ved foerste
 # start (plasma-setup) ville spoerge om det samme igen, saa den springes over. Er der ingen
 # almindelig bruger (UID 1000 til 59999), faar plasma-setup lov at koere og oprette en.
+# Anaconda 44 opretter brugerne (useradd -R) i den nye udrulnings rod, foer %post koerer i
+# samme rod (pyanaconda/modules/boss/installation.py: "User creation" foer "Post installation scripts").
 %post
 if awk -F: '$3 >= 1000 && $3 < 60000 { fundet = 1 } END { exit !fundet }' /etc/passwd; then
     touch /etc/plasma-setup-done

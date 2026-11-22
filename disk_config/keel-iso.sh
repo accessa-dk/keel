@@ -138,8 +138,18 @@ if [ -n "${EFI_START:-}" ] && [ -n "${EFI_BLOKKE:-}" ] \
 else
     echo "::warning title=Keel ISO::EFI-partitionens grub.cfg kunne ikke laeses; kun ISO-traeets er kontrolleret"
 fi
-checkisomd5 "$NY" > "$WORK/md5.txt" 2>&1 || { cat "$WORK/md5.txt"; exit 1; }
-notice "checkisomd5: $(tail -n 1 "$WORK/md5.txt" | tr -d "\r")"
+# checkisomd5 skriver resultatet ("The media check is complete, the result is: PASS.") paa stderr
+# og resten paa stdout (isomd5sum, checkisomd5.c). Begge gemmes, og resultatlinjen skal sige PASS.
+MD5_RC=0
+checkisomd5 "$NY" > "$WORK/md5-stdout.txt" 2> "$WORK/md5-stderr.txt" || MD5_RC=$?
+MD5_RESULTAT="$(grep -m 1 'the result is:' "$WORK/md5-stderr.txt" || true)"
+echo "--- checkisomd5 (exit $MD5_RC):"
+cat "$WORK/md5-stdout.txt" "$WORK/md5-stderr.txt"
+if [ "$MD5_RC" -ne 0 ] || [ "$MD5_RESULTAT" != "The media check is complete, the result is: PASS." ]; then
+    echo "checkisomd5 er ikke bestaaet (exit $MD5_RC): ${MD5_RESULTAT:-ingen resultatlinje}" >&2
+    exit 1
+fi
+notice "checkisomd5 (exit 0): ${MD5_RESULTAT} Indlagt MD5: $(checkisomd5 --md5sumonly "$NY" 2>&1 | head -n 1 | sed 's|^.*: *||')"
 
 mv -f "$NY" "$ISO"
 rm -rf "$WORK"
