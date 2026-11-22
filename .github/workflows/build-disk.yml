@@ -22,6 +22,10 @@ on:
       # Uden ./ foran: stifiltre matches mod stien fra repoets rod.
       - 'disk_config/disk.toml'
       - 'disk_config/iso.toml'
+      - 'disk_config/keel-iso.sh'
+      - 'disk_config/anaconda/**'
+      - 'system_files/usr/share/keel/release'
+      - 'system_files/usr/share/plymouth/themes/spinner/watermark.png'
       - '.github/workflows/build-disk.yml'
 
 env:
@@ -93,6 +97,23 @@ jobs:
           # kinoite-main angiver ikke selv et rodfilsystem, saa det saettes her (Fedoras standard)
           rootfs: btrfs
           additional-args: --use-librepo=True
+
+      # Keel 0.1 (B3, trin 6): Keels navn, version og udseende i GRUB og Anaconda.
+      # Koerer Fedoras mkksiso i en Fedora 44-container. --privileged, fordi mkksiso bygger
+      # EFI-partitionen (efiboot.img) om med en loop-enhed. Se disk_config/keel-iso.sh.
+      - name: Keel-branding af installations-ISO'en
+        if: matrix.disk-type == 'anaconda-iso'
+        env:
+          OUTPUT_DIR: ${{ steps.build.outputs.output-directory }}
+        run: |
+          set -euo pipefail
+          sudo podman run --rm --privileged \
+            -v "${GITHUB_WORKSPACE}:/keel" \
+            -w /keel \
+            quay.io/fedora/fedora:44 \
+            bash /keel/disk_config/keel-iso.sh /keel "/keel/${OUTPUT_DIR#./}/bootiso/install.iso"
+          sudo chown -R "$(id -u):$(id -g)" "${OUTPUT_DIR}"
+          ls -l "${OUTPUT_DIR}/bootiso"
 
       # Ogsaa ved pull_request, saa en aendring af iso.toml kan proeves paa en ISO foer fletning.
       - name: Upload disk images and Checksum to Job Artifacts
