@@ -1,5 +1,12 @@
+# Keel 0.1 (B3, trin 5): dansk som forvalg i installationsprogrammet.
+# Uden sprogmodulet skriver Anaconda et tomt vconsole.keymap= paa kernelinjen,
+# saa tekstkonsollen faar amerikansk tastatur.
 [customizations.installer.kickstart]
 contents = """
+lang da_DK.UTF-8
+keyboard --vckeymap=dk --xlayouts='dk'
+timezone Europe/Copenhagen --utc
+
 %post
 bootc switch --mutate-in-place --transport registry ghcr.io/jonashelbech-max/keel:latest
 %end
@@ -7,6 +14,7 @@ bootc switch --mutate-in-place --transport registry ghcr.io/jonashelbech-max/kee
 
 [customizations.installer.modules]
 enable = [
+  "org.fedoraproject.Anaconda.Modules.Localization",
   "org.fedoraproject.Anaconda.Modules.Storage",
   "org.fedoraproject.Anaconda.Modules.Runtime",
   "org.fedoraproject.Anaconda.Modules.Network",
