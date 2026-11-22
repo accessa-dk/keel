@@ -1,0 +1,43 @@
+/* Keel 0.1 (B3, trin 6): installationsprogrammets udseende.
+ *
+ * Laegges af disk_config/keel-iso.sh i ISO'ens opdateringsbillede (updates.img) og erstatter
+ * det stylesheet, som Anacondas profil peger paa (Fedoras er /usr/share/anaconda/pixmaps/fedora.css
+ * fra fedora-logos). Anaconda laeser det oven paa sit eget anaconda-gtk.css.
+ * Farverne er Keels maerke: navy #0f2d4a, lys blaa #7fd1e8 og hvid.
+ */
+
+@define-color keel_navy #0f2d4a;
+@define-color keel_navy_lys #163d63;
+@define-color keel_blaa #7fd1e8;
+
+/* Sidebjaelken i oversigten og ved installationen */
+.logo-sidebar {
+    background-image: linear-gradient(to bottom, @keel_navy_lys, @keel_navy);
+    background-color: @keel_navy;
+    background-repeat: no-repeat;
+}
+
+/* Keels maerke oeverst i sidebjaelken (samme billede som paa opstartsskaermen, 200 x 60) */
+.logo {
+    background-image: url('/usr/share/anaconda/pixmaps/keel-sidebar-logo.png');
+    background-position: 50% 28px;
+    background-repeat: no-repeat;
+    background-size: 150px 45px;
+    background-color: transparent;
+}
+
+.product-logo {
+    background-image: none;
+    background-color: transparent;
+}
+
+/* Topbjaelken i de enkelte trin (tastatur, disk, bruger osv.) */
+AnacondaSpokeWindow #nav-box {
+    background-image: none;
+    background-color: @keel_navy;
+    color: white;
+}
+
+AnacondaSpokeWindow #nav-box GtkButton {
+    box-shadow: none;
+}

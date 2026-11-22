@@ -7,8 +7,19 @@ lang da_DK.UTF-8
 keyboard --vckeymap=dk --xlayouts='dk'
 timezone Europe/Copenhagen --utc
 
+# Keel 0.1 (B3, trin 6): bootc switch til ghcr.io/jonashelbech-max/keel:latest staar allerede i den
+# kickstart, bootc-image-builder genererer (osbuild-base.ks), og er derfor ikke gentaget her.
+
+# Anaconda har sat sprog, tastatur og tidszone og oprettet brugeren. KDE's opsaetning ved foerste
+# start (plasma-setup) ville spoerge om det samme igen, saa den springes over. Er der ingen
+# almindelig bruger (UID 1000 til 59999), faar plasma-setup lov at koere og oprette en.
 %post
-bootc switch --mutate-in-place --transport registry ghcr.io/jonashelbech-max/keel:latest
+if awk -F: '$3 >= 1000 && $3 < 60000 { fundet = 1 } END { exit !fundet }' /etc/passwd; then
+    touch /etc/plasma-setup-done
+    echo "Keel: plasma-setup springes over, brugeren er oprettet i installationsprogrammet"
+else
+    echo "Keel: ingen almindelig bruger, plasma-setup koerer ved foerste start"
+fi
 %end
 """
 

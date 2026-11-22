@@ -168,5 +168,21 @@ rm -f /tmp/keel-dnf.txt /tmp/keel-repoquery.txt /tmp/keel-shim.txt
 
 # Installationsprogrammet kommer i trin 5 (se claude/keel-b3-plan.md i projektet).
 
+### Keel 0.1 (B3, trin 6): VERSION i os-release.
+# Basen skriver VERSION="44.<dato>.0 (Kinoite)". Keel viser "0.1". VERSION er kun til visning;
+# programmer, der skal kende udgivelsen, laeser VERSION_ID, som bliver 44: bootc-image-builder
+# slaar Fedora 44's pakker op efter ID_LIKE og VERSION_ID, og toolbox (trin 4) bruger VERSION_ID.
+# Basens byggenummer staar fortsat i OSTREE_VERSION og i imagets etiketter.
+grep -Eq '^VERSION="?44\.' "$OSR"
+sed -i "s|^VERSION=.*|VERSION=\"${KEEL_VERSION}\"|" "$OSR"
+grep -qx "VERSION=\"${KEEL_VERSION}\"" "$OSR"
+test "$(grep -c '^VERSION=' "$OSR")" = "1"
+grep -qx 'VERSION_ID=44' "$OSR"
+if grep -E '^(NAME|VERSION|PRETTY_NAME)=' "$OSR" | grep -qi kinoite; then
+    echo "os-release viser stadig Kinoite" >&2
+    exit 1
+fi
+echo "::notice title=Keel version::$(grep -E '^(VERSION|VERSION_ID|OSTREE_VERSION)=' "$OSR" | tr '\n' ' ')"
+
 # dnf (trin 2) efterlader filer, som bootc container lint advarer om. Ryd dem vaek.
 rm -rf /run/dnf /var/lib/dnf/repos
