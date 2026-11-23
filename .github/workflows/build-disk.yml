@@ -23,6 +23,7 @@ on:
       - 'disk_config/disk.toml'
       - 'disk_config/iso.toml'
       - 'disk_config/keel-iso.sh'
+      - 'disk_config/keel-iso-lag.sh'
       - 'disk_config/anaconda/**'
       - 'system_files/usr/share/keel/release'
       - 'system_files/usr/share/plymouth/themes/spinner/watermark.png'
@@ -30,7 +31,10 @@ on:
 
 env:
   IMAGE_NAME: ${{ github.event.repository.name }} # output of build.yml, keep in sync
-  IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
+  # Repoet er flyttet til accessa-dk (set 23.11.2026), og ghcr.io/accessa-dk/keel kan ikke hentes uden
+  # login. De installerede systemer og den offentlige pakke er ghcr.io/jonashelbech-max/keel, saa ISO'en
+  # bygges derfra, indtil Jonas har valgt, hvor imaget skal udgives.
+  IMAGE_REGISTRY: "ghcr.io/jonashelbech-max"
   DEFAULT_TAG: "latest"
   BIB_IMAGE: "quay.io/centos-bootc/bootc-image-builder:latest"
 
