@@ -23,6 +23,7 @@ on:
       - 'disk_config/disk.toml'
       - 'disk_config/iso.toml'
       - 'disk_config/keel-iso.sh'
+      - 'disk_config/keel-iso-lag.sh'
       - 'disk_config/anaconda/**'
       - 'system_files/usr/share/keel/release'
       - 'system_files/usr/share/plymouth/themes/spinner/watermark.png'

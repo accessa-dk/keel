@@ -11,6 +11,8 @@
 #        /.buildstamp med product = Keel og version = 0.1 (Anaconda 44 laeser navn og version herfra)
 #        Keels stylesheet og maerke i stedet for Fedoras logo og blaa sidebjaelke.
 #   3. MD5-kontrolsummen til "Test this media" laegges ind igen (mkksiso goer det selv).
+# Foer det erstatter keel-iso-lag.sh imagets kopi paa ISO'en med registrets, saa den foerste
+# opdatering kun henter aendrede lag.
 #
 # Koeres i en Fedora 44-container fra build-disk.yml:
 #   keel-iso.sh <repo-mappe> <install.iso>
@@ -31,8 +33,8 @@ CSS="$REPO/disk_config/anaconda/keel.css"
 test -s "$LOGO"
 test -s "$CSS"
 
-dnf -y -q install lorax xorriso isomd5sum squashfs-tools cpio gzip dosfstools mtools
-rpm -q lorax xorriso isomd5sum
+dnf -y -q install lorax xorriso isomd5sum squashfs-tools cpio gzip dosfstools mtools skopeo jq
+rpm -q lorax xorriso isomd5sum skopeo jq
 
 ISODIR="$(dirname "$ISO")"
 WORK="$ISODIR/.keel-iso"
@@ -43,6 +45,10 @@ df -h "$ISODIR"
 notice() {
     echo "::notice title=Keel ISO::$*"
 }
+
+### Imagets kopi paa ISO'en faar registrets lag (fund 1 fra trin 5). Se disk_config/keel-iso-lag.sh.
+# Foer resten, saa mkksiso nedenfor laegger MD5-kontrolsummen ind for den endelige ISO.
+bash "$REPO/disk_config/keel-iso-lag.sh" skift "$ISO" "$WORK"
 
 ### Hvad bootc-image-builder har lavet
 xorriso -indev "$ISO" -pvd_info 2>&1 | grep -E '^Volume id|^Volume Set Id|^App Id' || true
@@ -150,6 +156,8 @@ if [ "$MD5_RC" -ne 0 ] || [ "$MD5_RESULTAT" != "The media check is complete, the
     exit 1
 fi
 notice "checkisomd5 (exit 0): ${MD5_RESULTAT} Indlagt MD5: $(checkisomd5 --md5sumonly "$NY" 2>&1 | head -n 1 | sed 's|^.*: *||')"
+
+bash "$REPO/disk_config/keel-iso-lag.sh" kontrol "$NY" "$WORK"
 
 mv -f "$NY" "$ISO"
 rm -rf "$WORK"
