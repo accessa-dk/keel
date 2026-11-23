@@ -106,12 +106,13 @@ find_kickstart() {
 
 registret() {
     skopeo inspect --raw --retry-times 3 "docker://$TARGET" > "$L/registret.manifest.json"
-    local type
-    type="$(jq -r '.mediaType // empty' "$L/registret.manifest.json")"
-    case "$type" in
-        application/vnd.oci.image.manifest.v1+json|application/vnd.docker.distribution.manifest.v2+json) ;;
-        *) echo "Registret gav ikke et enkelt manifest for $TARGET (mediaType '$type')" >&2; return 1 ;;
-    esac
+    # Et OCI-manifest behoever ikke have feltet mediaType (registrets har det ikke), saa et enkelt
+    # manifest kendes paa config og layers, og et indeks (flere arkitekturer) paa manifests.
+    if ! jq -e 'has("config") and has("layers") and (has("manifests") | not)' "$L/registret.manifest.json" > /dev/null; then
+        echo "Registret gav ikke et enkelt manifest for $TARGET:" >&2
+        head -c 2000 "$L/registret.manifest.json" >&2
+        return 1
+    fi
     REG_DIGEST="$(skopeo manifest-digest "$L/registret.manifest.json")"
 }
 
