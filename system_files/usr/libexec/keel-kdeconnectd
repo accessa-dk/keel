@@ -1,0 +1,34 @@
+#!/bin/sh
+# Keel 0.1 (krav 4, trin 3): KDE Connect er kun paa bestilling.
+#
+# KDE Connect sender ellers ved hvert login sit faste enheds-id og maskinens navn ud paa
+# lokalnettet (UDP 1716 broadcast og mDNS). Keel lader programmet vaere installeret, men slaar
+# dets netvaerk ("backends") fra, foerste gang det starter for en bruger. Brugeren slaar det til
+# i KDE Connect under Indstillinger > Backends (eller: kdeconnect-cli --enable-backend lan), og
+# det valg bliver staaende, fordi filen nedenfor kun skrives een gang pr. bruger.
+#
+# Startes i stedet for kdeconnectd fra autostart og fra D-Bus (se build_files/build.sh).
+dir="${XDG_CONFIG_HOME:-${HOME}/.config}/kdeconnect"
+conf="${dir}/config"
+marker="${dir}/.keel-netvaerk-fra"
+line="disabled_providers_v2=lan, bluetooth, loopback"
+
+if [ ! -e "$marker" ] && mkdir -p "$dir"; then
+    tmp="${conf}.keel.$$"
+    if [ -f "$conf" ]; then
+        # QSettings gemmer noegler uden gruppe under [General]. Skriv linjen der, og fjern en
+        # tidligere vaerdi af samme noegle.
+        awk -v line="$line" '
+            /^\[/ { if (inGeneral && !done) { print line; done = 1 }
+                    inGeneral = ($0 == "[General]"); print; next }
+            inGeneral && /^disabled_providers_v2=/ { next }
+            { print }
+            END { if (!done) { if (!inGeneral) print "[General]"; print line } }
+        ' "$conf" > "$tmp"
+    else
+        printf '[General]\n%s\n' "$line" > "$tmp"
+    fi && mv -f "$tmp" "$conf" && : > "$marker" \
+        || { rm -f "$tmp"; echo "keel-kdeconnectd: kunne ikke skrive $conf" >&2; }
+fi
+
+exec /usr/bin/kdeconnectd "$@"

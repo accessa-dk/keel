@@ -184,5 +184,61 @@ if grep -E '^(NAME|VERSION|PRETTY_NAME)=' "$OSR" | grep -qi kinoite; then
 fi
 echo "::notice title=Keel version::$(grep -E '^(VERSION|VERSION_ID|OSTREE_VERSION)=' "$OSR" | tr '\n' ' ')"
 
+### Keel 0.1 (krav 4, trin 3): Keel fortaeller ikke lokalnettet, hvem den er.
+# Maalt 22.11.2026 (knowledge/claude/keel-anonymt-maaling i projektet): ved login sendte KDE Connect
+# sit faste enheds-id og navnet "keel" ud (UDP 1716 broadcast og mDNS), og avahi annoncerede
+# keel.local med maskinens adresser.
+
+# KDE Connect bliver installeret, men dets netvaerk er fra, til brugeren selv slaar det til.
+# Det er ikke nok at fjerne autostart: KDE Connect-ikonet i panelets bakke starter kdeconnectd
+# over D-Bus. Derfor startes kdeconnectd alle steder gennem /usr/libexec/keel-kdeconnectd, som
+# foerste gang pr. bruger skriver disabled_providers_v2=lan, bluetooth, loopback i
+# ~/.config/kdeconnect/config. Uden backends sender kdeconnectd intet (LanLinkProvider::onStart
+# vender om, naar den er slaaet fra). Brugeren slaar det til under Indstillinger > Backends.
+KDC_WRAPPER=/usr/libexec/keel-kdeconnectd
+test -x "$KDC_WRAPPER"
+test -x /usr/bin/kdeconnectd
+rpm -q kdeconnectd
+grep -qx 'exec /usr/bin/kdeconnectd "$@"' "$KDC_WRAPPER"
+KDC_FILES="$(grep -lx 'Exec=/usr/bin/kdeconnectd' \
+    /etc/xdg/autostart/*.desktop /usr/share/applications/*.desktop /usr/share/dbus-1/services/*.service \
+    2>/dev/null || true)"
+printf '%s\n' "$KDC_FILES"
+# Kilden (daemon/CMakeLists.txt) installerer samme Exec tre steder: autostart, programmer og D-Bus.
+# Autostart og D-Bus skal vaere der; programmenuens kopi er NoDisplay og kan mangle.
+test "$(printf '%s\n' "$KDC_FILES" | grep -c .)" -ge 2
+printf '%s\n' "$KDC_FILES" | grep -qx /etc/xdg/autostart/org.kde.kdeconnect.daemon.desktop
+printf '%s\n' "$KDC_FILES" | grep -qx /usr/share/dbus-1/services/org.kde.kdeconnect.service
+for f in $KDC_FILES; do
+    rpm -qf "$f"
+    sed -i "s|^Exec=/usr/bin/kdeconnectd\$|Exec=${KDC_WRAPPER}|" "$f"
+    grep -qx "Exec=${KDC_WRAPPER}" "$f"
+done
+if grep -rlx 'Exec=/usr/bin/kdeconnectd' /etc/xdg/autostart /usr/share/applications /usr/share/dbus-1 /usr/lib/systemd/user 2>/dev/null; then
+    echo "kdeconnectd startes stadig uden om ${KDC_WRAPPER}" >&2
+    exit 1
+fi
+# Proev omslaget i en tom hjemmemappe (kdeconnectd selv startes ikke).
+KDC_TEST="$(mktemp -d)"
+sed 's|^exec /usr/bin/kdeconnectd .*|exit 0|' "$KDC_WRAPPER" > "${KDC_TEST}/w.sh"
+HOME="$KDC_TEST" XDG_CONFIG_HOME= sh "${KDC_TEST}/w.sh"
+grep -qx '\[General\]' "${KDC_TEST}/.config/kdeconnect/config"
+grep -qx 'disabled_providers_v2=lan, bluetooth, loopback' "${KDC_TEST}/.config/kdeconnect/config"
+test -e "${KDC_TEST}/.config/kdeconnect/.keel-netvaerk-fra"
+rm -rf "$KDC_TEST"
+
+# avahi annoncerer ikke maskinen (keel.local, adresser, omvendte navne) og tager ikke imod
+# annonceringer fra programmer. Opslag af andre maskiners .local-navne (nss-mdns) og soegning
+# efter tjenester virker fortsat; det er netop det, disable-publishing er lavet til.
+# systemd-resolved har mDNS slaaet fra og LLMNR kun til opslag (uaendret).
+AVC=/etc/avahi/avahi-daemon.conf
+rpm -qf "$AVC"
+test "$(grep -Ec '^#?disable-publishing=' "$AVC")" = "1"
+sed -i -E 's|^#?disable-publishing=.*|disable-publishing=yes|' "$AVC"
+test "$(awk '/^\[/{s=$0} /^disable-publishing=yes$/{print s}' "$AVC")" = "[publish]"
+grep -E '^\[|^[a-z0-9-]+=' "$AVC"
+
+echo "::notice title=Keel anonymt::kdeconnectd via ${KDC_WRAPPER} i $(printf '%s ' $KDC_FILES); avahi disable-publishing=yes"
+
 # dnf (trin 2) efterlader filer, som bootc container lint advarer om. Ryd dem vaek.
 rm -rf /run/dnf /var/lib/dnf/repos
